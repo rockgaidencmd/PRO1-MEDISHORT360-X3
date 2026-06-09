@@ -18,7 +18,7 @@ const firebaseConfig = {
 };
 // ─────────────────────────────────────────────
 
-const COLECCION   = 'medishort360';
+const COLECCION = 'codigos_x3';
 const LS_KEY      = 'ms360x3_activado';
 const LS_CODE_KEY = 'ms360x3_codigo';
 
