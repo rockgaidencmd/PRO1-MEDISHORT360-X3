@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MEDISHORT360 - Dosis en mL</title>
+    <meta name="description" content="Calcula en mL la dosis a administrar. Canal MEDISHORT360." />
+    <meta name="theme-color" content="#1976d2" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Dosis 360" />
+    <link rel="manifest" href="./manifest.json" />
+    <link rel="icon" href="./icono-192.png" />
+    <link rel="apple-touch-icon" href="./icono-192.png" />
+    <link rel="stylesheet" href="./style.css" />
+
+    <!-- ═══ ESTILOS DEL GATE DE ACTIVACIÓN ═══ -->
+    <style>
+      #activation-gate {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        background: linear-gradient(160deg, #050d1a 0%, #0a1428 60%, #050d1a 100%);
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        animation: gateFadeIn 0.4s ease;
+      }
+
+      @keyframes gateFadeIn {
+        from { opacity: 0; transform: scale(1.02); }
+        to   { opacity: 1; transform: scale(1); }
+      }
+
+      @keyframes gateFadeOut {
+        from { opacity: 1; transform: scale(1); }
+        to   { opacity: 0; transform: scale(0.97); }
+      }
+
+      .gate-box {
+        width: 100%;
+        max-width: 380px;
+        background: rgba(25, 118, 210, 0.07);
+        border: 1px solid rgba(66, 165, 245, 0.22);
+        border-radius: 20px;
+        padding: 36px 28px 32px;
+        text-align: center;
+        box-shadow: 0 0 40px rgba(25,118,210,0.12), 0 8px 32px rgba(0,0,0,0.6);
+      }
+
+      .gate-logo {
+        width: 68px;
+        height: 68px;
+        margin: 0 auto 14px;
+        display: block;
+        border-radius: 50%;
+        object-fit: cover;
+        filter: drop-shadow(0 0 12px rgba(66,165,245,0.5));
+      }
+
+      .gate-title {
+        font-size: 1.35rem;
+        font-weight: 700;
+        color: #42a5f5;
+        letter-spacing: 1.5px;
+        margin: 0 0 2px;
+        text-transform: uppercase;
+      }
+
+      .gate-appname {
+        font-size: 0.78rem;
+        color: rgba(255,255,255,0.35);
+        margin: 0 0 6px;
+      }
+
+      .gate-subtitle {
+        font-size: 0.82rem;
+        color: rgba(255,255,255,0.45);
+        margin: 0 0 28px;
+      }
+
+      .gate-label {
+        font-size: 0.7rem;
+        font-weight: 600;
+        color: rgba(255,255,255,0.45);
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        display: block;
+        text-align: left;
+        margin-bottom: 8px;
+      }
+
+      #gate-input {
+        width: 100%;
+        background: rgba(25,118,210,0.08);
+        border: 1.5px solid rgba(66,165,245,0.38);
+        border-radius: 10px;
+        color: #42a5f5;
+        font-family: 'Courier New', monospace;
+        font-size: 1.2rem;
+        letter-spacing: 4px;
+        text-align: center;
+        padding: 13px 16px;
+        outline: none;
+        box-sizing: border-box;
+        transition: border-color 0.2s, box-shadow 0.2s;
+      }
+
+      #gate-input:focus {
+        border-color: #42a5f5;
+        box-shadow: 0 0 0 3px rgba(66,165,245,0.18);
+      }
+
+      #gate-input::placeholder {
+        color: rgba(66,165,245,0.25);
+        letter-spacing: 2px;
+        font-size: 0.9rem;
+      }
+
+      @keyframes gateShake {
+        0%,100% { transform: translateX(0); }
+        20%     { transform: translateX(-6px); }
+        40%     { transform: translateX(6px); }
+        60%     { transform: translateX(-4px); }
+        80%     { transform: translateX(4px); }
+      }
+
+      #gate-input.shake {
+        animation: gateShake 0.4s ease;
+        border-color: #ef5350;
+        box-shadow: 0 0 0 3px rgba(239,83,80,0.15);
+      }
+
+      #gate-error {
+        font-size: 0.78rem;
+        color: #ef5350;
+        margin: 8px 0 0;
+        min-height: 18px;
+        opacity: 0;
+        transition: opacity 0.2s;
+      }
+      #gate-error.visible { opacity: 1; }
+
+      #gate-btn {
+        width: 100%;
+        margin-top: 20px;
+        padding: 13px;
+        background: linear-gradient(135deg, #1565c0, #42a5f5);
+        border: none;
+        border-radius: 10px;
+        color: #fff;
+        font-size: 0.95rem;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        cursor: pointer;
+        transition: opacity 0.2s, transform 0.1s;
+      }
+      #gate-btn:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
+      #gate-btn:active:not(:disabled) { transform: translateY(0); }
+      #gate-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+      .gate-footer {
+        margin-top: 18px;
+        font-size: 0.7rem;
+        color: rgba(255,255,255,0.2);
+        line-height: 1.5;
+      }
+    </style>
+  </head>
+  <body>
+
+    <!-- ═══════════════════════════════════════════════
+         PANTALLA DE ACTIVACIÓN — OVERLAY FIJO
+         Solo se muestra si el dispositivo no está activado.
+         activacion.js lo controla con localStorage.
+    ════════════════════════════════════════════════ -->
+    <div id="activation-gate">
+      <div class="gate-box">
+        <img src="./icono-192.png" alt="MEDISHORT360" class="gate-logo" />
+        <div class="gate-title">MEDISHORT360</div>
+        <div class="gate-appname">Cálculo IV · Dosis en mL</div>
+        <div class="gate-subtitle">Ingresa tu código de activación para continuar</div>
+
+        <label class="gate-label" for="gate-input">Código de activación</label>
+        <input
+          type="text"
+          id="gate-input"
+          maxlength="20"
+          autocomplete="off"
+          autocorrect="off"
+          spellcheck="false"
+          placeholder="XXXX-XXXX"
+        />
+        <div id="gate-error"></div>
+
+        <button id="gate-btn">ACTIVAR</button>
+
+        <div class="gate-footer">
+          📺 Canal MEDISHORT360 · Calculo IV · Enfermería<br/>
+          La activación se guarda en este dispositivo
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════ APP ORIGINAL (sin modificar) ══════════════ -->
+    <div id="particles"></div>
+    <div id="root">
+      <div class="app" id="app"></div>
+    </div>
+    <button id="install-btn" onclick="handleInstall()">🩺 Instalar app</button>
+
+    <!-- Scripts originales -->
+    <script src="./app.js"></script>
+
+    <!-- Script de activación Firebase (módulo ES) -->
+    <script type="module" src="./activacion.js"></script>
+  </body>
+</html>

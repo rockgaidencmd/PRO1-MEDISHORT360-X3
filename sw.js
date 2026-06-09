@@ -1,20 +1,36 @@
-const CACHE_NAME = "medishort360-dosis-v1";
-const ASSETS = [
-  "./index.html",
-  "./style.css",
-  "./app.js",
-  "./manifest.json",
-  "./icono-192.png",
-  "./icono-512.png"
+// ===== sw.js · MEDISHORT360-X3 · Service Worker v3 =====
+const CACHE_NAME = 'ms360x3-v3';
+
+const PRECACHE_URLS = [
+  './',
+  './index.html',
+  './app.js',
+  './activacion.js',
+  './style.css',
+  './manifest.json',
+  './icono-192.png',
+  './icono-512.png',
 ];
 
-self.addEventListener("install", (e) => {
-  e.waitUntil(caches.open(CACHE_NAME).then((c) => c.addAll(ASSETS)));
+const BYPASS_ORIGINS = [
+  'firestore.googleapis.com',
+  'firebase.googleapis.com',
+  'identitytoolkit.googleapis.com',
+  'securetoken.googleapis.com',
+  'www.gstatic.com',
+  'fonts.googleapis.com',
+  'fonts.gstatic.com',
+];
+
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_URLS))
+  );
   self.skipWaiting();
 });
 
-self.addEventListener("activate", (e) => {
-  e.waitUntil(
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
     caches.keys().then((keys) =>
       Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
     )
@@ -22,6 +38,22 @@ self.addEventListener("activate", (e) => {
   self.clients.claim();
 });
 
-self.addEventListener("fetch", (e) => {
-  e.respondWith(caches.match(e.request).then((r) => r || fetch(e.request)));
+self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
+  if (BYPASS_ORIGINS.some((origin) => url.hostname.includes(origin))) return;
+  if (event.request.method !== 'GET') return;
+
+  event.respondWith(
+    fetch(event.request)
+      .then((networkResponse) => {
+        const clone = networkResponse.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+        return networkResponse;
+      })
+      .catch(() =>
+        caches.match(event.request).then(
+          (cached) => cached || new Response('Sin conexión', { status: 503 })
+        )
+      )
+  );
 });
