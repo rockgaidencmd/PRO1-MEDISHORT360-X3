@@ -154,6 +154,15 @@ const DRUGS = [
     nota:"Riesgo extrapiramidal; máx 5 días" },
 ];
 
+// Frecuencia (tomas por dia) para repartir la dosis diaria
+const FREQS = [["1","c/24 h"],["2","c/12 h"],["3","c/8 h"],["4","c/6 h"]];
+// Frecuencia habitual por defecto de cada farmaco (tomas/dia)
+const FREQ_DEFAULT = {
+  paracetamol:4, metamizol:3, ketorolaco:4, tramadol:3, ceftriaxona:1,
+  ampicilina:4, ciprofloxacino:2, metronidazol:3, omeprazol:1, ondansetron:3,
+  dexametasona:1, hidrocortisona:4, furosemida:2, metoclopramida:3,
+};
+
 let state = {
   pestana: "dosis",          // "dosis" | "goteo"
   drugName:"", dosis:"", dosisUnit:"mg",
@@ -171,7 +180,7 @@ let state = {
   infNombre:"", infUnidad:"mcg/kg/min", infDosis:"",
   infMasa:"", infMasaUnit:"mg", infVolumen:"", infPeso:"",
   // Farmacos: biblioteca general
-  genDrugId:"", genPeso:"", genMgkg:"",
+  genDrugId:"", genPeso:"", genMgkg:"", genFreq:"1",
   installPrompt:null,
 };
 
@@ -488,6 +497,7 @@ function render(){
     } else {
       const gp = el("gen-peso"); if(gp && gp.value !== String(state.genPeso)) gp.value = state.genPeso;
       const gm = el("gen-mgkg"); if(gm && gm.value !== String(state.genMgkg)) gm.value = state.genMgkg;
+      const gf = el("gen-freq"); if(gf && gf.value !== String(state.genFreq)) gf.value = state.genFreq;
       const r = el("gen-result"); if(r) r.innerHTML = renderGeneralResultado(bl, blt, cy);
       return;
     }
@@ -964,14 +974,26 @@ function renderGeneralResultado(bl, blt, cy){
     </div>`;
   const peso = parseFloat(state.genPeso || 0);
   const mgkg = parseFloat(state.genMgkg || 0);
-  let doseMg = d.calcMg;
+  const freq = parseFloat(state.genFreq || 1) || 1;
+  const weightBased = d.mgkgOpts && peso>0 && mgkg>0;
+  let doseMg = d.calcMg;        // mg por administración (base del cálculo de mL)
   let doseNota = "dosis de referencia (adulto)";
-  let topado = false;
-  if(d.mgkgOpts && peso>0 && mgkg>0){
-    const teorica = mgkg * peso;
-    topado = d.maxMg && teorica>d.maxMg;
-    doseMg = topado ? d.maxMg : teorica;
-    doseNota = `${mgkg} ${d.mgkgLabel} × ${peso} kg${topado?` (tope ${d.maxMg} mg)`:""}`;
+  let dailyMg = null;
+  if(weightBased){
+    if(d.mgkgLabel === "mg/kg/día"){
+      let dia = mgkg * peso;
+      if(d.maxMg && dia>d.maxMg) dia = d.maxMg;
+      dailyMg = dia;
+      doseMg = dia / freq;
+      doseNota = `${mgkg} mg/kg/día × ${peso} kg = ${fmt(dailyMg)} mg/día ÷ ${freq} ${freq===1?"toma":"tomas"}`;
+    } else {
+      let pd = mgkg * peso;
+      const topado = d.maxMg && pd>d.maxMg;
+      if(topado) pd = d.maxMg;
+      doseMg = pd;
+      dailyMg = pd * freq;
+      doseNota = `${mgkg} mg/kg/dosis × ${peso} kg${topado?` (tope ${d.maxMg} mg)`:""}`;
+    }
   }
   const ml = doseMg / d.presMg * d.presMl;
   return `
@@ -982,13 +1004,15 @@ function renderGeneralResultado(bl, blt, cy){
       </div>
       <div class="result-body">
         <div class="res-main" style="padding-top:6px">
-          <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);margin-bottom:10px">Extraer de la presentación</div>
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);margin-bottom:10px">
+            Extraer por toma
+          </div>
           <div class="res-num" style="color:${cy};text-shadow:0 0 22px ${cy}55">
             ${fmt(ml)} <span class="res-unit" style="color:${blt}">mL</span>
           </div>
-          <div class="res-desc">≈ ${fmt(doseMg)} mg · ${doseNota}</div>
-          ${(d.mgkgOpts && peso>0 && mgkg>0 && d.mgkgLabel==="mg/kg/día") ? `
-            <div class="res-desc" style="color:#fcd34d">Es la dosis <strong>diaria</strong>: divide en las tomas según la frecuencia.</div>` : ""}
+          <div class="res-desc">≈ ${fmt(doseMg)} mg por dosis · ${doseNota}</div>
+          ${weightBased ? `
+            <div class="res-desc" style="color:var(--muted)">${freq} ${freq===1?"toma":"tomas"}/día · total ${fmt(dailyMg)} mg/día</div>` : ""}
         </div>
         <div class="steps-card" style="border-color:${blt};background:linear-gradient(135deg,#0b1a30,#040c1f);box-shadow:0 0 24px ${bl}33;margin-top:14px">
           <div class="steps-title" style="color:${blt}"><span>💊</span> Ficha del fármaco</div>
@@ -1013,7 +1037,7 @@ function renderGeneral(bl, blt, cy){
       <div class="presets-row">
         ${DRUGS.map(x=>`<button class="preset-btn"
           style="${state.genDrugId===x.id?`border-color:${blt};color:${blt};background:${bl}22`:""}"
-          onclick="setState({genDrugId:'${x.id}',genMgkg:'${x.mgkgOpts?x.mgkgOpts[0]:""}'})">${x.nombre}</button>`).join("")}
+          onclick="setState({genDrugId:'${x.id}',genMgkg:'${x.mgkgOpts?x.mgkgOpts[0]:""}',genFreq:'${FREQ_DEFAULT[x.id]||1}'})">${x.nombre}</button>`).join("")}
       </div>
 
       <div class="input-block" style="margin-top:12px;margin-bottom:0">
@@ -1030,13 +1054,22 @@ function renderGeneral(bl, blt, cy){
         <span class="input-label">Dosis por peso · elige o escribe (${d.mgkgLabel})</span>
         <div class="presets-row" style="margin-bottom:8px">
           ${d.mgkgOpts.map(v=>`<button class="preset-btn"
-            style="${String(state.genMgkg)===String(v)?`border-color:${blt};color:${blt};background:${bl}22`:""}"
             onclick="setState({genMgkg:'${v}'})">${v} mg/kg</button>`).join("")}
         </div>
         <div class="irow" style="border-color:${bl}44">
           <input id="gen-mgkg" type="number" step="any" min="0" placeholder="mg/kg manual (ej: 15)" value="${state.genMgkg}"
             oninput="setState({genMgkg:this.value})"/>
           <span class="iunit">mg/kg</span>
+        </div>
+      </div>
+
+      <div class="input-block" style="margin-top:12px;margin-bottom:0">
+        <span class="input-label">Frecuencia (tomas al día)</span>
+        <div class="irow" style="border-color:${bl}44">
+          <select id="gen-freq" class="iselect" style="flex:1;border-left:none;padding:11px 8px;font-size:15px;color:#fff"
+            onchange="setState({genFreq:this.value})">
+            ${FREQS.map(([v,l])=>`<option value="${v}"${String(state.genFreq)===v?" selected":""}>${l} · ${v} ${v==="1"?"toma":"tomas"}/día</option>`).join("")}
+          </select>
         </div>
       </div>` : ""}
     </div>
