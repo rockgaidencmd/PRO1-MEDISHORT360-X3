@@ -18,6 +18,113 @@ const PRESETS = [
   { label:"Amikacina 500",   tipo:"liquido", contenido:500,  contUnit:"mg", volumen:2   },
 ];
 
+/* ====================================================
+   MODULO FARMACOS · datos
+   ==================================================== */
+
+// Unidades de dosis para el Modo Libre (infusion ponderal / UCI)
+// massU = unidad de masa de la dosis · perKg = por kg de peso · perMin = por minuto
+const DOSIS_UNITS = {
+  "mcg/kg/min": { massU:"mcg", perKg:true,  perMin:true  },
+  "mcg/kg/h":   { massU:"mcg", perKg:true,  perMin:false },
+  "mg/kg/min":  { massU:"mg",  perKg:true,  perMin:true  },
+  "mg/kg/h":    { massU:"mg",  perKg:true,  perMin:false },
+  "mcg/min":    { massU:"mcg", perKg:false, perMin:true  },
+  "mcg/h":      { massU:"mcg", perKg:false, perMin:false },
+  "mg/min":     { massU:"mg",  perKg:false, perMin:true  },
+  "mg/h":       { massU:"mg",  perKg:false, perMin:false },
+  "U/kg/h":     { massU:"U",   perKg:true,  perMin:false },
+  "U/h":        { massU:"U",   perKg:false, perMin:false },
+  "mU/kg/min":  { massU:"mU",  perKg:true,  perMin:true  },
+};
+
+// Diluciones tipicas de infusion (referencia · VERIFICAR con protocolo de la unidad)
+const INF_PRESETS = [
+  { l:"Norepinefrina", n:"Norepinefrina", u:"mcg/kg/min", m:"8",    mu:"mg",  v:"100" },
+  { l:"Adrenalina",    n:"Adrenalina",    u:"mcg/kg/min", m:"4",    mu:"mg",  v:"100" },
+  { l:"Dopamina",      n:"Dopamina",      u:"mcg/kg/min", m:"200",  mu:"mg",  v:"100" },
+  { l:"Dobutamina",    n:"Dobutamina",    u:"mcg/kg/min", m:"250",  mu:"mg",  v:"100" },
+  { l:"Midazolam",     n:"Midazolam",     u:"mg/kg/h",    m:"50",   mu:"mg",  v:"50"  },
+  { l:"Fentanilo",     n:"Fentanilo",     u:"mcg/kg/h",   m:"1500", mu:"mcg", v:"100" },
+  { l:"Propofol",      n:"Propofol",      u:"mg/kg/h",    m:"1000", mu:"mg",  v:"100" },
+  { l:"Amiodarona",    n:"Amiodarona",    u:"mg/min",     m:"900",  mu:"mg",  v:"500" },
+];
+
+// Biblioteca de farmacos generales IV (dosis de REFERENCIA para adulto · VERIFICAR)
+// presMg/presMl = concentracion de la presentacion para calcular mL a extraer
+const DRUGS = [
+  { id:"paracetamol", nombre:"Paracetamol IV", cat:"Analgésico / antipirético",
+    presentacion:"1000 mg / 100 mL (10 mg/mL)", dosis:"1 g c/6–8 h (máx 4 g/día). Si <50 kg: 15 mg/kg/dosis",
+    calcMg:1000, mgkg:15, maxMg:1000, presMg:1000, presMl:100,
+    dilucion:"Ya viene diluido (vial de 100 mL)", admin:"Infusión IV en 15 min",
+    nota:"Reducir dosis en hepatopatía o peso <50 kg" },
+  { id:"metamizol", nombre:"Metamizol (Dipirona)", cat:"Analgésico / antipirético",
+    presentacion:"1 g / 2 mL (ampolla)", dosis:"1–2 g c/6–8 h (máx 6 g/día)",
+    calcMg:1000, mgkg:null, maxMg:null, presMg:1000, presMl:2,
+    dilucion:"Diluir en 100 mL de SF 0.9%", admin:"IV lenta en 15 min (riesgo de hipotensión)",
+    nota:"Vigilar TA; riesgo de agranulocitosis" },
+  { id:"ketorolaco", nombre:"Ketorolaco", cat:"AINE",
+    presentacion:"30 mg / 1 mL", dosis:"30 mg c/6 h (máx 90 mg/día; 60 mg/día en >65 años)",
+    calcMg:30, mgkg:null, maxMg:null, presMg:30, presMl:1,
+    dilucion:"IV directo o diluido en 10 mL de SF", admin:"IV en ≥15 s",
+    nota:"Máx 5 días; evitar en ERC o riesgo de sangrado" },
+  { id:"tramadol", nombre:"Tramadol", cat:"Opioide débil",
+    presentacion:"100 mg / 2 mL", dosis:"50–100 mg c/6–8 h (máx 400 mg/día)",
+    calcMg:100, mgkg:null, maxMg:null, presMg:100, presMl:2,
+    dilucion:"Diluir en 100 mL de SF", admin:"Infusión en 15–30 min",
+    nota:"Náusea frecuente; disminuye umbral convulsivo" },
+  { id:"ceftriaxona", nombre:"Ceftriaxona", cat:"Antibiótico · cefalosporina 3ª",
+    presentacion:"1 g vial (polvo)", dosis:"1–2 g c/24 h",
+    calcMg:1000, mgkg:null, maxMg:null, presMg:1000, presMl:10,
+    dilucion:"Reconstituir 1 g en 10 mL de agua ppi", admin:"IV lenta 2–4 min o infusión 30 min",
+    nota:"No mezclar con soluciones con calcio (Ringer) por la misma vía" },
+  { id:"ampicilina", nombre:"Ampicilina", cat:"Antibiótico · penicilina",
+    presentacion:"1 g vial (polvo)", dosis:"1–2 g c/6 h",
+    calcMg:1000, mgkg:null, maxMg:null, presMg:1000, presMl:10,
+    dilucion:"Reconstituir 1 g en 10 mL de SF", admin:"IV lenta 3–5 min o infusión 15–30 min",
+    nota:"Usar recién reconstituida" },
+  { id:"ciprofloxacino", nombre:"Ciprofloxacino", cat:"Antibiótico · fluoroquinolona",
+    presentacion:"400 mg / 200 mL", dosis:"400 mg c/8–12 h",
+    calcMg:400, mgkg:null, maxMg:null, presMg:400, presMl:200,
+    dilucion:"Presentación lista (bolsa 200 mL)", admin:"Infusión en 60 min",
+    nota:"Vigilar QT; fotosensibilidad" },
+  { id:"metronidazol", nombre:"Metronidazol", cat:"Antibiótico · antianaerobio",
+    presentacion:"500 mg / 100 mL", dosis:"500 mg c/8 h",
+    calcMg:500, mgkg:null, maxMg:null, presMg:500, presMl:100,
+    dilucion:"Presentación lista (bolsa 100 mL)", admin:"Infusión en 20–30 min",
+    nota:"Evitar alcohol (efecto disulfiram)" },
+  { id:"omeprazol", nombre:"Omeprazol", cat:"Inhibidor de bomba de protones",
+    presentacion:"40 mg vial (polvo)", dosis:"40 mg c/12–24 h",
+    calcMg:40, mgkg:null, maxMg:null, presMg:40, presMl:10,
+    dilucion:"Reconstituir y diluir en 100 mL de SF/D5%", admin:"Infusión en 20–30 min",
+    nota:"En HDA suele usarse bolo 80 mg + 8 mg/h" },
+  { id:"ondansetron", nombre:"Ondansetrón", cat:"Antiemético",
+    presentacion:"4 mg/2 mL · 8 mg/4 mL", dosis:"4–8 mg c/8 h (máx 16 mg/dosis IV)",
+    calcMg:4, mgkg:null, maxMg:null, presMg:4, presMl:2,
+    dilucion:"IV directo lento o diluido en 50 mL", admin:"IV en ≥30 s (o infusión 15 min)",
+    nota:"Prolonga QT" },
+  { id:"dexametasona", nombre:"Dexametasona", cat:"Corticoide",
+    presentacion:"8 mg / 2 mL (4 mg/mL)", dosis:"4–8 mg c/8–24 h (según indicación)",
+    calcMg:8, mgkg:null, maxMg:null, presMg:8, presMl:2,
+    dilucion:"IV directo o diluido en 50–100 mL", admin:"IV lenta o infusión corta",
+    nota:"Ajustar según cuadro (edema, náusea, etc.)" },
+  { id:"hidrocortisona", nombre:"Hidrocortisona", cat:"Corticoide",
+    presentacion:"100 mg vial (polvo)", dosis:"100 mg c/6–8 h (según cuadro)",
+    calcMg:100, mgkg:null, maxMg:null, presMg:100, presMl:2,
+    dilucion:"Reconstituir 100 mg en 2 mL; diluir en 100 mL", admin:"IV lenta o infusión",
+    nota:"En anafilaxia / crisis suprarrenal según protocolo" },
+  { id:"furosemida", nombre:"Furosemida", cat:"Diurético de asa",
+    presentacion:"20 mg / 2 mL", dosis:"20–40 mg/dosis IV",
+    calcMg:20, mgkg:null, maxMg:null, presMg:20, presMl:2,
+    dilucion:"IV directo lento o diluido en SF", admin:"IV a ≤4 mg/min (evita ototoxicidad)",
+    nota:"Vigilar K⁺ y volemia" },
+  { id:"metoclopramida", nombre:"Metoclopramida", cat:"Antiemético / procinético",
+    presentacion:"10 mg / 2 mL", dosis:"10 mg c/8 h (máx 30 mg/día)",
+    calcMg:10, mgkg:null, maxMg:null, presMg:10, presMl:2,
+    dilucion:"IV directo lento o diluido en 50 mL", admin:"IV en ≥3 min (rápida causa acatisia)",
+    nota:"Riesgo extrapiramidal; máx 5 días" },
+];
+
 let state = {
   pestana: "dosis",          // "dosis" | "goteo"
   drugName:"", dosis:"", dosisUnit:"mg",
@@ -30,6 +137,12 @@ let state = {
   goteoHoras: "", goteoMinutos: "",
   goteoFactor: "20",
   goteoInicio: "",
+  // Farmacos: Modo Libre (infusion ponderal)
+  farmacoModo: "infusion",   // "infusion" | "general"
+  infNombre:"", infUnidad:"mcg/kg/min", infDosis:"",
+  infMasa:"", infMasaUnit:"mg", infVolumen:"", infPeso:"",
+  // Farmacos: biblioteca general
+  genDrugId:"", genPeso:"",
   installPrompt:null,
 };
 
@@ -321,6 +434,35 @@ function render(){
     return;
   }
 
+  // Farmacos: actualizar sin recrear inputs (FIX: teclado no se cierra)
+  const farmacoContainer = el("farmaco-container");
+  if(farmacoContainer && state.pestana === "farmaco"){
+    const modoActual = farmacoContainer.getAttribute("data-modo");
+    const drugActual = farmacoContainer.getAttribute("data-drug") || "";
+    const unitActual = farmacoContainer.getAttribute("data-unit") || "";
+    // Reconstruir todo el bloque si cambia el modo, el farmaco elegido o la unidad de dosis
+    if(modoActual !== state.farmacoModo
+       || (state.farmacoModo === "general"  && drugActual !== (state.genDrugId || ""))
+       || (state.farmacoModo === "infusion" && unitActual !== state.infUnidad)){
+      farmacoContainer.setAttribute("data-modo", state.farmacoModo);
+      farmacoContainer.setAttribute("data-drug", state.genDrugId || "");
+      farmacoContainer.setAttribute("data-unit", state.infUnidad);
+      farmacoContainer.innerHTML = renderFarmaco();
+      return;
+    }
+    if(state.farmacoModo === "infusion"){
+      const map = {"inf-nombre":"infNombre","inf-dosis":"infDosis","inf-masa":"infMasa","inf-volumen":"infVolumen","inf-peso":"infPeso"};
+      for(const id in map){ const n = el(id); if(n && n.value !== String(state[map[id]])) n.value = state[map[id]]; }
+      const ms = el("inf-masa-unit"); if(ms && ms.value !== state.infMasaUnit) ms.value = state.infMasaUnit;
+      const r = el("inf-result"); if(r) r.innerHTML = renderInfusionResultado(calcularInfusion(), bl, blt, cy);
+      return;
+    } else {
+      const gp = el("gen-peso"); if(gp && gp.value !== String(state.genPeso)) gp.value = state.genPeso;
+      const r = el("gen-result"); if(r) r.innerHTML = renderGeneralResultado(bl, blt, cy);
+      return;
+    }
+  }
+
   const vialedFull  = res ? Math.floor(res.viales) : 0;
   const pct         = res ? Math.min(res.viales*100,100) : 0;
 
@@ -343,19 +485,14 @@ function render(){
     </div>
 
     <!-- TABS -->
-    <div style="display:flex;gap:10px;margin-bottom:18px">
-      <button onclick="setState({pestana:'dosis'})"
-        style="flex:1;padding:13px 8px;border-radius:14px;border:2px solid ${state.pestana==='dosis'?blt:bl+'44'};
-               background:${state.pestana==='dosis'?bl+'33':'transparent'};color:${state.pestana==='dosis'?'#fff':'#90caf9'};
-               font-size:14px;font-weight:${state.pestana==='dosis'?'700':'400'};cursor:pointer;transition:all .2s">
-        💉 Dosis en mL
-      </button>
-      <button onclick="setState({pestana:'goteo'})"
-        style="flex:1;padding:13px 8px;border-radius:14px;border:2px solid ${state.pestana==='goteo'?blt:bl+'44'};
-               background:${state.pestana==='goteo'?bl+'33':'transparent'};color:${state.pestana==='goteo'?'#fff':'#90caf9'};
-               font-size:14px;font-weight:${state.pestana==='goteo'?'700':'400'};cursor:pointer;transition:all .2s">
-        💧 Cálculo de Goteo
-      </button>
+    <div style="display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap">
+      ${[["dosis","💉 Dosis mL"],["goteo","💧 Goteo IV"],["farmaco","💊 Fármacos"]].map(([id,lbl])=>`
+        <button onclick="setState({pestana:'${id}'})"
+          style="flex:1 1 28%;min-width:92px;padding:12px 6px;border-radius:14px;border:2px solid ${state.pestana===id?blt:bl+'44'};
+                 background:${state.pestana===id?bl+'33':'transparent'};color:${state.pestana===id?'#fff':'#90caf9'};
+                 font-size:13px;font-weight:${state.pestana===id?'700':'400'};cursor:pointer;transition:all .2s;white-space:nowrap">
+          ${lbl}
+        </button>`).join("")}
     </div>
 
     ${state.pestana === 'dosis' ? `
@@ -407,10 +544,15 @@ function render(){
     <div id="result-container">
       ${generarResultados(res, bl, blt, cy)}
     </div>
-    ` : `
+    ` : state.pestana === 'goteo' ? `
     <!-- PESTAÑA GOTEO -->
     <div id="goteo-container" data-modo="${state.goteoModo}">
       ${renderGoteo()}
+    </div>
+    ` : `
+    <!-- PESTAÑA FÁRMACOS -->
+    <div id="farmaco-container" data-modo="${state.farmacoModo}" data-drug="${state.genDrugId||''}" data-unit="${state.infUnidad}">
+      ${renderFarmaco()}
     </div>
     `}
 
@@ -639,6 +781,247 @@ function renderGoteo(){
     </div>
   `;
 }
+
+/* ====================================================
+   MODULO FARMACOS  ·  render + calculo
+   ==================================================== */
+
+// Info de unidad de masa: dimension y factor a la unidad canonica de su dimension
+function unitInfo(u){
+  const M = { g:1e6, mg:1e3, mcg:1, ng:1e-3 };  // dim "masa" · canonica = mcg
+  const U = { U:1000, mU:1 };                    // dim "U"    · canonica = mU
+  const E = { mEq:1 };                           // dim "mEq"
+  if(u in M) return { dim:"masa", k:M[u] };
+  if(u in U) return { dim:"U",    k:U[u] };
+  if(u in E) return { dim:"mEq",  k:E[u] };
+  return { dim:"masa", k:1 };
+}
+
+function calcularInfusion(){
+  const du   = DOSIS_UNITS[state.infUnidad];
+  const dose = parseFloat(state.infDosis   || 0);
+  const masa = parseFloat(state.infMasa    || 0);
+  const vol  = parseFloat(state.infVolumen || 0);
+  const peso = parseFloat(state.infPeso    || 0);
+  if(!du) return null;
+  if(!dose || dose<=0 || !masa || masa<=0 || !vol || vol<=0) return null;
+  if(du.perKg && (!peso || peso<=0)) return null;
+  const doseU = unitInfo(du.massU);
+  const masaU = unitInfo(state.infMasaUnit);
+  if(doseU.dim !== masaU.dim) return { error:"dim" };
+  const conc      = (masa * masaU.k) / vol;                 // canonica por mL
+  const doseCanon = dose * doseU.k;                          // dosis en canonica
+  const rate      = doseCanon * (du.perKg?peso:1) * (du.perMin?60:1) / conc; // mL/h
+  return { rate, conc: conc / doseU.k, concUnit: du.massU, peso, vol, du };
+}
+
+function renderInfusionResultado(res, bl, blt, cy){
+  const pk = DOSIS_UNITS[state.infUnidad] && DOSIS_UNITS[state.infUnidad].perKg;
+  if(!res) return `
+    <div style="background:${bl}11;border:1px solid ${bl}33;border-radius:14px;padding:20px;text-align:center;color:var(--muted);font-size:13px">
+      ⚕️ Completa dosis, masa, volumen ${pk?"y peso ":""}para ver la velocidad de infusión
+    </div>`;
+  if(res.error === "dim") return `
+    <div class="warn-box">⚠️ La unidad de dosis (<strong>${state.infUnidad}</strong>) y la unidad de masa (<strong>${state.infMasaUnit}</strong>) no son compatibles. Para dosis en mcg/mg usa masa en g/mg/mcg; para dosis en U/mU usa masa en U.</div>`;
+  return `
+    <div class="result-card" style="border-color:${blt}66;box-shadow:0 0 28px ${bl}28">
+      <div class="result-body">
+        <div class="res-main">
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);margin-bottom:10px">Velocidad de infusión</div>
+          <div class="res-num" style="color:${cy};text-shadow:0 0 22px ${cy}55">
+            ${fmt(res.rate)} <span class="res-unit" style="color:${blt}">mL/h</span>
+          </div>
+          <div class="res-desc">${state.infNombre?state.infNombre+" · ":""}${state.infDosis} ${state.infUnidad}</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px">
+          <div style="background:${bl}18;border:1px solid ${bl}44;border-radius:12px;padding:12px;text-align:center">
+            <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Concentración real</div>
+            <div style="font-size:18px;font-weight:700;color:${cy}">${fmt(res.conc)}<span style="font-size:11px;color:${blt}"> ${res.concUnit}/mL</span></div>
+          </div>
+          <div style="background:${bl}18;border:1px solid ${bl}44;border-radius:12px;padding:12px;text-align:center">
+            <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Microgotero</div>
+            <div style="font-size:18px;font-weight:700;color:#4fc3f7">${Math.round(res.rate)}<span style="font-size:11px;color:${blt}"> µgtt/min</span></div>
+          </div>
+        </div>
+        <div class="bar-txt" style="margin-top:12px">${res.du.perKg?`Peso: ${res.peso} kg · `:""}Volumen preparado: ${res.vol} mL</div>
+      </div>
+    </div>`;
+}
+
+function renderInfusion(bl, blt, cy){
+  const res = calcularInfusion();
+  const unidadOpts = Object.keys(DOSIS_UNITS).map(u=>
+    `<option value="${u}"${state.infUnidad===u?" selected":""}>${u}</option>`).join("");
+  const masaOpts = ["g","mg","mcg","U","mEq"].map(u=>
+    `<option value="${u}"${state.infMasaUnit===u?" selected":""}>${u}</option>`).join("");
+  return `
+    <div class="card" style="border-color:${bl}55;box-shadow:0 0 16px ${bl}15;margin-bottom:14px">
+      <div class="card-label" style="margin-bottom:6px">⚡ Acceso rápido (diluciones típicas · verifica):</div>
+      <div class="presets-row">
+        ${INF_PRESETS.map(p=>`<button class="preset-btn"
+          onclick="applyInfusionPreset(${JSON.stringify(p).replace(/"/g,"'")})">${p.l}</button>`).join("")}
+      </div>
+      <div class="divider">o ingresa manualmente</div>
+      <div style="height:14px"></div>
+
+      <div class="input-block">
+        <span class="input-label">Nombre del fármaco (opcional)</span>
+        <div class="irow" style="border-color:${bl}44">
+          <input id="inf-nombre" type="text" placeholder="Ej: Norepinefrina" value="${state.infNombre}"
+            oninput="setState({infNombre:this.value})"/>
+        </div>
+      </div>
+
+      <div class="input-block">
+        <span class="input-label">Unidad de dosis</span>
+        <div class="irow" style="border-color:${bl}44">
+          <select id="inf-unidad" class="iselect" style="flex:1;border-left:none;padding:11px 8px;font-size:15px;color:#fff"
+            onchange="setState({infUnidad:this.value})">${unidadOpts}</select>
+        </div>
+      </div>
+
+      <div class="input-block">
+        <span class="input-label">Dosis deseada</span>
+        <div class="irow" style="border-color:${bl}44">
+          <input id="inf-dosis" type="number" step="any" min="0" placeholder="Ej: 0.15" value="${state.infDosis}"
+            oninput="setState({infDosis:this.value})"/>
+          <span class="iunit">${state.infUnidad}</span>
+        </div>
+      </div>
+
+      <div class="conc-vol">
+        <div class="input-block" style="margin-bottom:0">
+          <span class="input-label">Masa total en jeringa / suero</span>
+          <div class="irow" style="border-color:${bl}44">
+            <input id="inf-masa" type="number" step="any" min="0" placeholder="Ej: 8" value="${state.infMasa}"
+              oninput="setState({infMasa:this.value})"/>
+            <select id="inf-masa-unit" class="iselect" onchange="setState({infMasaUnit:this.value})">${masaOpts}</select>
+          </div>
+        </div>
+        <div class="input-block" style="margin-bottom:0">
+          <span class="input-label">Volumen total (mL)</span>
+          <div class="irow" style="border-color:${bl}44">
+            <input id="inf-volumen" type="number" step="any" min="0" placeholder="Ej: 100" value="${state.infVolumen}"
+              oninput="setState({infVolumen:this.value})"/>
+            <span class="iunit">mL</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="input-block" style="margin-top:10px;margin-bottom:0">
+        <span class="input-label">Peso del paciente (kg) <span style="opacity:.5">(solo si dosis por kg)</span></span>
+        <div class="irow" style="border-color:${bl}44">
+          <input id="inf-peso" type="number" step="any" min="0" placeholder="Ej: 70" value="${state.infPeso}"
+            oninput="setState({infPeso:this.value})"/>
+          <span class="iunit">kg</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="inf-result">${renderInfusionResultado(res, bl, blt, cy)}</div>
+
+    <div style="background:${bl}0d;border:1px solid ${bl}33;border-radius:10px;padding:12px 16px;margin-top:4px;color:#90caf9;font-size:12px">
+      💡 mL/h = (dosis × [peso] × [60 si /min]) ÷ concentración. Verifica siempre la preparación y el protocolo de tu unidad.
+    </div>
+  `;
+}
+
+function renderGeneralResultado(bl, blt, cy){
+  const d = DRUGS.find(x=>x.id===state.genDrugId);
+  if(!d) return `
+    <div style="background:${bl}11;border:1px solid ${bl}33;border-radius:14px;padding:20px;text-align:center;color:var(--muted);font-size:13px">
+      💊 Selecciona un fármaco para ver dosis, dilución y cálculo
+    </div>`;
+  const peso = parseFloat(state.genPeso || 0);
+  let doseMg = d.calcMg;
+  let doseNota = "dosis de referencia";
+  if(d.mgkg && peso>0){
+    const teorica = d.mgkg * peso;
+    doseMg = (d.maxMg && teorica>d.maxMg) ? d.maxMg : teorica;
+    doseNota = `${d.mgkg} mg/kg × ${peso} kg${(d.maxMg && teorica>d.maxMg)?` (tope ${d.maxMg} mg)`:""}`;
+  }
+  const ml = doseMg / d.presMg * d.presMl;
+  return `
+    <div class="result-card" style="border-color:${blt}66;box-shadow:0 0 28px ${bl}28">
+      <div class="result-header">
+        <div style="font-size:17px;font-weight:700;color:#fff">${d.nombre}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px">${d.cat}</div>
+      </div>
+      <div class="result-body">
+        <div class="res-main" style="padding-top:6px">
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);margin-bottom:10px">Extraer de la presentación</div>
+          <div class="res-num" style="color:${cy};text-shadow:0 0 22px ${cy}55">
+            ${fmt(ml)} <span class="res-unit" style="color:${blt}">mL</span>
+          </div>
+          <div class="res-desc">≈ ${fmt(doseMg)} mg · ${doseNota}</div>
+        </div>
+        <div class="steps-card" style="border-color:${blt};background:linear-gradient(135deg,#0b1a30,#040c1f);box-shadow:0 0 24px ${bl}33;margin-top:14px">
+          <div class="steps-title" style="color:${blt}"><span>💊</span> Ficha del fármaco</div>
+          <div style="display:flex;flex-direction:column;gap:9px;font-size:13px;color:#b0c4de;line-height:1.6">
+            <div><strong style="color:${blt}">Presentación:</strong> ${d.presentacion}</div>
+            <div><strong style="color:${blt}">Dosis referencia:</strong> ${d.dosis}</div>
+            <div><strong style="color:${blt}">Dilución:</strong> ${d.dilucion}</div>
+            <div><strong style="color:${blt}">Administración:</strong> ${d.admin}</div>
+            ${d.nota?`<div style="color:var(--muted)"><strong style="color:${blt}">Nota:</strong> ${d.nota}</div>`:""}
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderGeneral(bl, blt, cy){
+  return `
+    <div class="card" style="border-color:${bl}55;box-shadow:0 0 16px ${bl}15;margin-bottom:14px">
+      <div class="card-label" style="margin-bottom:8px">🏥 Elige el fármaco</div>
+      <div class="presets-row">
+        ${DRUGS.map(d=>`<button class="preset-btn"
+          style="${state.genDrugId===d.id?`border-color:${blt};color:${blt};background:${bl}22`:""}"
+          onclick="setState({genDrugId:'${d.id}'})">${d.nombre}</button>`).join("")}
+      </div>
+      <div class="input-block" style="margin-top:10px;margin-bottom:0">
+        <span class="input-label">Peso del paciente (kg) <span style="opacity:.5">(opcional · dosis mg/kg)</span></span>
+        <div class="irow" style="border-color:${bl}44">
+          <input id="gen-peso" type="number" step="any" min="0" placeholder="Ej: 70" value="${state.genPeso}"
+            oninput="setState({genPeso:this.value})"/>
+          <span class="iunit">kg</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="gen-result">${renderGeneralResultado(bl, blt, cy)}</div>
+
+    <div class="warn-box" style="margin-top:4px">
+      ⚠️ Dosis de <strong>referencia</strong> para adulto. No sustituye el criterio clínico ni la prescripción.
+      Verifica siempre dosis, dilución y compatibilidad antes de administrar.
+    </div>
+  `;
+}
+
+function renderFarmaco(){
+  const bl="#1976d2", blt="#42a5f5", cy="#00cae0";
+  const m = state.farmacoModo;
+  return `
+    <div class="card" style="border-color:${bl}55;box-shadow:0 0 16px ${bl}15;margin-bottom:14px">
+      <div class="card-label" style="font-size:16px;margin-bottom:4px">💊 Cálculo por Fármaco</div>
+      <div style="color:var(--muted);font-size:12px;margin-bottom:14px">Infusión ponderal (UCI) y fármacos generales IV</div>
+      <div class="tipo-row" style="margin-bottom:2px">
+        <button class="tipo-btn ${m==="infusion"?"active":""}" onclick="setState({farmacoModo:'infusion'})"
+          style="${m==="infusion"?`background:${bl}22;border-color:${blt};color:#fff`:""}">
+          <span class="tipo-icon">⚡</span>Modo Libre<br><small style="font-size:10px;opacity:.7">Infusión · bomba mL/h</small>
+        </button>
+        <button class="tipo-btn ${m==="general"?"active":""}" onclick="setState({farmacoModo:'general'})"
+          style="${m==="general"?`background:${bl}22;border-color:${blt};color:#fff`:""}">
+          <span class="tipo-icon">🏥</span>Fármacos<br><small style="font-size:10px;opacity:.7">Generales IV</small>
+        </button>
+      </div>
+    </div>
+    ${m==="infusion" ? renderInfusion(bl, blt, cy) : renderGeneral(bl, blt, cy)}
+  `;
+}
+
+window.applyInfusionPreset = function(p){
+  setState({ infNombre:p.n, infUnidad:p.u, infMasa:p.m, infMasaUnit:p.mu, infVolumen:p.v });
+};
 
 window.applyPreset = function(p){
   setState({
