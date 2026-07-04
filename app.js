@@ -50,77 +50,106 @@ const INF_PRESETS = [
   { l:"Amiodarona",    n:"Amiodarona",    u:"mg/min",     m:"900",  mu:"mg",  v:"500" },
 ];
 
-// Biblioteca de farmacos generales IV (dosis de REFERENCIA para adulto · VERIFICAR)
+// Biblioteca de farmacos generales IV (dosis de REFERENCIA · VERIFICAR)
 // presMg/presMl = concentracion de la presentacion para calcular mL a extraer
+// mgkgOpts = valores mg/kg de referencia (pediatria/por peso) · mgkgLabel = por dosis o por dia
 const DRUGS = [
   { id:"paracetamol", nombre:"Paracetamol IV", cat:"Analgésico / antipirético",
-    presentacion:"1000 mg / 100 mL (10 mg/mL)", dosis:"1 g c/6–8 h (máx 4 g/día). Si <50 kg: 15 mg/kg/dosis",
-    calcMg:1000, mgkg:15, maxMg:1000, presMg:1000, presMl:100,
+    presentacion:"1000 mg / 100 mL (10 mg/mL)", dosis:"Adulto ≥50 kg: 1 g c/6–8 h (máx 4 g/día)",
+    dosisPed:"10–15 mg/kg/dosis c/6 h (RN/pretérmino: dosis menores)",
+    mgkgOpts:[10,15,20], mgkgLabel:"mg/kg/dosis", maxMg:1000,
+    calcMg:1000, presMg:1000, presMl:100,
     dilucion:"Ya viene diluido (vial de 100 mL)", admin:"Infusión IV en 15 min",
     nota:"Reducir dosis en hepatopatía o peso <50 kg" },
   { id:"metamizol", nombre:"Metamizol (Dipirona)", cat:"Analgésico / antipirético",
-    presentacion:"1 g / 2 mL (ampolla)", dosis:"1–2 g c/6–8 h (máx 6 g/día)",
-    calcMg:1000, mgkg:null, maxMg:null, presMg:1000, presMl:2,
+    presentacion:"1 g / 2 mL (ampolla)", dosis:"Adulto: 1–2 g c/6–8 h (máx 6 g/día)",
+    dosisPed:"10–25 mg/kg/dosis c/6–8 h (>3 meses)",
+    mgkgOpts:[10,20,25], mgkgLabel:"mg/kg/dosis", maxMg:2000,
+    calcMg:1000, presMg:1000, presMl:2,
     dilucion:"Diluir en 100 mL de SF 0.9%", admin:"IV lenta en 15 min (riesgo de hipotensión)",
     nota:"Vigilar TA; riesgo de agranulocitosis" },
   { id:"ketorolaco", nombre:"Ketorolaco", cat:"AINE",
-    presentacion:"30 mg / 1 mL", dosis:"30 mg c/6 h (máx 90 mg/día; 60 mg/día en >65 años)",
-    calcMg:30, mgkg:null, maxMg:null, presMg:30, presMl:1,
+    presentacion:"30 mg / 1 mL", dosis:"Adulto: 30 mg c/6 h (máx 90 mg/día; 60 en >65 a)",
+    dosisPed:"0.5 mg/kg/dosis c/6 h (>2 años; máx 30 mg)",
+    mgkgOpts:[0.5], mgkgLabel:"mg/kg/dosis", maxMg:30,
+    calcMg:30, presMg:30, presMl:1,
     dilucion:"IV directo o diluido en 10 mL de SF", admin:"IV en ≥15 s",
     nota:"Máx 5 días; evitar en ERC o riesgo de sangrado" },
   { id:"tramadol", nombre:"Tramadol", cat:"Opioide débil",
-    presentacion:"100 mg / 2 mL", dosis:"50–100 mg c/6–8 h (máx 400 mg/día)",
-    calcMg:100, mgkg:null, maxMg:null, presMg:100, presMl:2,
+    presentacion:"100 mg / 2 mL", dosis:"Adulto: 50–100 mg c/6–8 h (máx 400 mg/día)",
+    dosisPed:"1–2 mg/kg/dosis c/6–8 h (>1 año)",
+    mgkgOpts:[1,1.5,2], mgkgLabel:"mg/kg/dosis", maxMg:100,
+    calcMg:100, presMg:100, presMl:2,
     dilucion:"Diluir en 100 mL de SF", admin:"Infusión en 15–30 min",
     nota:"Náusea frecuente; disminuye umbral convulsivo" },
   { id:"ceftriaxona", nombre:"Ceftriaxona", cat:"Antibiótico · cefalosporina 3ª",
-    presentacion:"1 g vial (polvo)", dosis:"1–2 g c/24 h",
-    calcMg:1000, mgkg:null, maxMg:null, presMg:1000, presMl:10,
+    presentacion:"1 g vial (polvo)", dosis:"Adulto: 1–2 g c/24 h",
+    dosisPed:"50–100 mg/kg/día (meningitis 100) en 1–2 dosis",
+    mgkgOpts:[50,75,100], mgkgLabel:"mg/kg/día", maxMg:2000,
+    calcMg:1000, presMg:1000, presMl:10,
     dilucion:"Reconstituir 1 g en 10 mL de agua ppi", admin:"IV lenta 2–4 min o infusión 30 min",
-    nota:"No mezclar con soluciones con calcio (Ringer) por la misma vía" },
+    nota:"No mezclar con soluciones con calcio (Ringer) por la misma vía. Evitar en neonato con calcio" },
   { id:"ampicilina", nombre:"Ampicilina", cat:"Antibiótico · penicilina",
-    presentacion:"1 g vial (polvo)", dosis:"1–2 g c/6 h",
-    calcMg:1000, mgkg:null, maxMg:null, presMg:1000, presMl:10,
+    presentacion:"1 g vial (polvo)", dosis:"Adulto: 1–2 g c/6 h",
+    dosisPed:"25–50 mg/kg/dosis c/6 h (100–200 mg/kg/día)",
+    mgkgOpts:[25,50], mgkgLabel:"mg/kg/dosis", maxMg:2000,
+    calcMg:1000, presMg:1000, presMl:10,
     dilucion:"Reconstituir 1 g en 10 mL de SF", admin:"IV lenta 3–5 min o infusión 15–30 min",
     nota:"Usar recién reconstituida" },
   { id:"ciprofloxacino", nombre:"Ciprofloxacino", cat:"Antibiótico · fluoroquinolona",
-    presentacion:"400 mg / 200 mL", dosis:"400 mg c/8–12 h",
-    calcMg:400, mgkg:null, maxMg:null, presMg:400, presMl:200,
+    presentacion:"400 mg / 200 mL", dosis:"Adulto: 400 mg c/8–12 h",
+    dosisPed:"10 mg/kg/dosis c/8–12 h (uso restringido en niños)",
+    mgkgOpts:[10], mgkgLabel:"mg/kg/dosis", maxMg:400,
+    calcMg:400, presMg:400, presMl:200,
     dilucion:"Presentación lista (bolsa 200 mL)", admin:"Infusión en 60 min",
     nota:"Vigilar QT; fotosensibilidad" },
   { id:"metronidazol", nombre:"Metronidazol", cat:"Antibiótico · antianaerobio",
-    presentacion:"500 mg / 100 mL", dosis:"500 mg c/8 h",
-    calcMg:500, mgkg:null, maxMg:null, presMg:500, presMl:100,
+    presentacion:"500 mg / 100 mL", dosis:"Adulto: 500 mg c/8 h",
+    dosisPed:"7.5 mg/kg/dosis c/6–8 h (30 mg/kg/día)",
+    mgkgOpts:[7.5], mgkgLabel:"mg/kg/dosis", maxMg:500,
+    calcMg:500, presMg:500, presMl:100,
     dilucion:"Presentación lista (bolsa 100 mL)", admin:"Infusión en 20–30 min",
     nota:"Evitar alcohol (efecto disulfiram)" },
   { id:"omeprazol", nombre:"Omeprazol", cat:"Inhibidor de bomba de protones",
-    presentacion:"40 mg vial (polvo)", dosis:"40 mg c/12–24 h",
-    calcMg:40, mgkg:null, maxMg:null, presMg:40, presMl:10,
+    presentacion:"40 mg vial (polvo)", dosis:"Adulto: 40 mg c/12–24 h",
+    dosisPed:"1 mg/kg/día c/12–24 h (máx 40 mg)",
+    mgkgOpts:[1], mgkgLabel:"mg/kg/día", maxMg:40,
+    calcMg:40, presMg:40, presMl:10,
     dilucion:"Reconstituir y diluir en 100 mL de SF/D5%", admin:"Infusión en 20–30 min",
     nota:"En HDA suele usarse bolo 80 mg + 8 mg/h" },
   { id:"ondansetron", nombre:"Ondansetrón", cat:"Antiemético",
-    presentacion:"4 mg/2 mL · 8 mg/4 mL", dosis:"4–8 mg c/8 h (máx 16 mg/dosis IV)",
-    calcMg:4, mgkg:null, maxMg:null, presMg:4, presMl:2,
+    presentacion:"4 mg/2 mL · 8 mg/4 mL", dosis:"Adulto: 4–8 mg c/8 h (máx 16 mg/dosis IV)",
+    dosisPed:"0.15 mg/kg/dosis c/8 h (máx 8 mg/dosis)",
+    mgkgOpts:[0.15], mgkgLabel:"mg/kg/dosis", maxMg:8,
+    calcMg:4, presMg:4, presMl:2,
     dilucion:"IV directo lento o diluido en 50 mL", admin:"IV en ≥30 s (o infusión 15 min)",
     nota:"Prolonga QT" },
   { id:"dexametasona", nombre:"Dexametasona", cat:"Corticoide",
-    presentacion:"8 mg / 2 mL (4 mg/mL)", dosis:"4–8 mg c/8–24 h (según indicación)",
-    calcMg:8, mgkg:null, maxMg:null, presMg:8, presMl:2,
+    presentacion:"8 mg / 2 mL (4 mg/mL)", dosis:"Adulto: 4–8 mg c/8–24 h (según indicación)",
+    dosisPed:"0.15–0.6 mg/kg/día (según indicación)",
+    mgkgOpts:[0.15,0.3,0.6], mgkgLabel:"mg/kg/día", maxMg:16,
+    calcMg:8, presMg:8, presMl:2,
     dilucion:"IV directo o diluido en 50–100 mL", admin:"IV lenta o infusión corta",
-    nota:"Ajustar según cuadro (edema, náusea, etc.)" },
+    nota:"Ajustar según cuadro (edema, náusea, laringitis, etc.)" },
   { id:"hidrocortisona", nombre:"Hidrocortisona", cat:"Corticoide",
-    presentacion:"100 mg vial (polvo)", dosis:"100 mg c/6–8 h (según cuadro)",
-    calcMg:100, mgkg:null, maxMg:null, presMg:100, presMl:2,
+    presentacion:"100 mg vial (polvo)", dosis:"Adulto: 100 mg c/6–8 h (según cuadro)",
+    dosisPed:"1–4 mg/kg/dosis c/6 h (según indicación)",
+    mgkgOpts:[1,2,4], mgkgLabel:"mg/kg/dosis", maxMg:500,
+    calcMg:100, presMg:100, presMl:2,
     dilucion:"Reconstituir 100 mg en 2 mL; diluir en 100 mL", admin:"IV lenta o infusión",
     nota:"En anafilaxia / crisis suprarrenal según protocolo" },
   { id:"furosemida", nombre:"Furosemida", cat:"Diurético de asa",
-    presentacion:"20 mg / 2 mL", dosis:"20–40 mg/dosis IV",
-    calcMg:20, mgkg:null, maxMg:null, presMg:20, presMl:2,
+    presentacion:"20 mg / 2 mL", dosis:"Adulto: 20–40 mg/dosis IV",
+    dosisPed:"0.5–1 mg/kg/dosis c/6–12 h (máx 40 mg)",
+    mgkgOpts:[0.5,1], mgkgLabel:"mg/kg/dosis", maxMg:40,
+    calcMg:20, presMg:20, presMl:2,
     dilucion:"IV directo lento o diluido en SF", admin:"IV a ≤4 mg/min (evita ototoxicidad)",
     nota:"Vigilar K⁺ y volemia" },
   { id:"metoclopramida", nombre:"Metoclopramida", cat:"Antiemético / procinético",
-    presentacion:"10 mg / 2 mL", dosis:"10 mg c/8 h (máx 30 mg/día)",
-    calcMg:10, mgkg:null, maxMg:null, presMg:10, presMl:2,
+    presentacion:"10 mg / 2 mL", dosis:"Adulto: 10 mg c/8 h (máx 30 mg/día)",
+    dosisPed:"0.1–0.15 mg/kg/dosis c/8 h (máx 10 mg)",
+    mgkgOpts:[0.1,0.15], mgkgLabel:"mg/kg/dosis", maxMg:10,
+    calcMg:10, presMg:10, presMl:2,
     dilucion:"IV directo lento o diluido en 50 mL", admin:"IV en ≥3 min (rápida causa acatisia)",
     nota:"Riesgo extrapiramidal; máx 5 días" },
 ];
@@ -142,7 +171,7 @@ let state = {
   infNombre:"", infUnidad:"mcg/kg/min", infDosis:"",
   infMasa:"", infMasaUnit:"mg", infVolumen:"", infPeso:"",
   // Farmacos: biblioteca general
-  genDrugId:"", genPeso:"",
+  genDrugId:"", genPeso:"", genMgkg:"",
   installPrompt:null,
 };
 
@@ -458,6 +487,7 @@ function render(){
       return;
     } else {
       const gp = el("gen-peso"); if(gp && gp.value !== String(state.genPeso)) gp.value = state.genPeso;
+      const gm = el("gen-mgkg"); if(gm && gm.value !== String(state.genMgkg)) gm.value = state.genMgkg;
       const r = el("gen-result"); if(r) r.innerHTML = renderGeneralResultado(bl, blt, cy);
       return;
     }
@@ -933,12 +963,15 @@ function renderGeneralResultado(bl, blt, cy){
       💊 Selecciona un fármaco para ver dosis, dilución y cálculo
     </div>`;
   const peso = parseFloat(state.genPeso || 0);
+  const mgkg = parseFloat(state.genMgkg || 0);
   let doseMg = d.calcMg;
-  let doseNota = "dosis de referencia";
-  if(d.mgkg && peso>0){
-    const teorica = d.mgkg * peso;
-    doseMg = (d.maxMg && teorica>d.maxMg) ? d.maxMg : teorica;
-    doseNota = `${d.mgkg} mg/kg × ${peso} kg${(d.maxMg && teorica>d.maxMg)?` (tope ${d.maxMg} mg)`:""}`;
+  let doseNota = "dosis de referencia (adulto)";
+  let topado = false;
+  if(d.mgkgOpts && peso>0 && mgkg>0){
+    const teorica = mgkg * peso;
+    topado = d.maxMg && teorica>d.maxMg;
+    doseMg = topado ? d.maxMg : teorica;
+    doseNota = `${mgkg} ${d.mgkgLabel} × ${peso} kg${topado?` (tope ${d.maxMg} mg)`:""}`;
   }
   const ml = doseMg / d.presMg * d.presMl;
   return `
@@ -954,12 +987,15 @@ function renderGeneralResultado(bl, blt, cy){
             ${fmt(ml)} <span class="res-unit" style="color:${blt}">mL</span>
           </div>
           <div class="res-desc">≈ ${fmt(doseMg)} mg · ${doseNota}</div>
+          ${(d.mgkgOpts && peso>0 && mgkg>0 && d.mgkgLabel==="mg/kg/día") ? `
+            <div class="res-desc" style="color:#fcd34d">Es la dosis <strong>diaria</strong>: divide en las tomas según la frecuencia.</div>` : ""}
         </div>
         <div class="steps-card" style="border-color:${blt};background:linear-gradient(135deg,#0b1a30,#040c1f);box-shadow:0 0 24px ${bl}33;margin-top:14px">
           <div class="steps-title" style="color:${blt}"><span>💊</span> Ficha del fármaco</div>
           <div style="display:flex;flex-direction:column;gap:9px;font-size:13px;color:#b0c4de;line-height:1.6">
             <div><strong style="color:${blt}">Presentación:</strong> ${d.presentacion}</div>
-            <div><strong style="color:${blt}">Dosis referencia:</strong> ${d.dosis}</div>
+            <div><strong style="color:${blt}">Dosis adulto:</strong> ${d.dosis}</div>
+            ${d.dosisPed?`<div><strong style="color:${blt}">Dosis pediátrica:</strong> ${d.dosisPed}</div>`:""}
             <div><strong style="color:${blt}">Dilución:</strong> ${d.dilucion}</div>
             <div><strong style="color:${blt}">Administración:</strong> ${d.admin}</div>
             ${d.nota?`<div style="color:var(--muted)"><strong style="color:${blt}">Nota:</strong> ${d.nota}</div>`:""}
@@ -970,29 +1006,46 @@ function renderGeneralResultado(bl, blt, cy){
 }
 
 function renderGeneral(bl, blt, cy){
+  const d = DRUGS.find(x=>x.id===state.genDrugId);
   return `
     <div class="card" style="border-color:${bl}55;box-shadow:0 0 16px ${bl}15;margin-bottom:14px">
       <div class="card-label" style="margin-bottom:8px">🏥 Elige el fármaco</div>
       <div class="presets-row">
-        ${DRUGS.map(d=>`<button class="preset-btn"
-          style="${state.genDrugId===d.id?`border-color:${blt};color:${blt};background:${bl}22`:""}"
-          onclick="setState({genDrugId:'${d.id}'})">${d.nombre}</button>`).join("")}
+        ${DRUGS.map(x=>`<button class="preset-btn"
+          style="${state.genDrugId===x.id?`border-color:${blt};color:${blt};background:${bl}22`:""}"
+          onclick="setState({genDrugId:'${x.id}',genMgkg:'${x.mgkgOpts?x.mgkgOpts[0]:""}'})">${x.nombre}</button>`).join("")}
       </div>
-      <div class="input-block" style="margin-top:10px;margin-bottom:0">
-        <span class="input-label">Peso del paciente (kg) <span style="opacity:.5">(opcional · dosis mg/kg)</span></span>
+
+      <div class="input-block" style="margin-top:12px;margin-bottom:0">
+        <span class="input-label">Peso del paciente (kg) <span style="opacity:.5">(para dosis mg/kg)</span></span>
         <div class="irow" style="border-color:${bl}44">
-          <input id="gen-peso" type="number" step="any" min="0" placeholder="Ej: 70" value="${state.genPeso}"
+          <input id="gen-peso" type="number" step="any" min="0" placeholder="Ej: 18" value="${state.genPeso}"
             oninput="setState({genPeso:this.value})"/>
           <span class="iunit">kg</span>
         </div>
       </div>
+
+      ${d && d.mgkgOpts ? `
+      <div class="input-block" style="margin-top:12px;margin-bottom:0">
+        <span class="input-label">Dosis por peso · elige o escribe (${d.mgkgLabel})</span>
+        <div class="presets-row" style="margin-bottom:8px">
+          ${d.mgkgOpts.map(v=>`<button class="preset-btn"
+            style="${String(state.genMgkg)===String(v)?`border-color:${blt};color:${blt};background:${bl}22`:""}"
+            onclick="setState({genMgkg:'${v}'})">${v} mg/kg</button>`).join("")}
+        </div>
+        <div class="irow" style="border-color:${bl}44">
+          <input id="gen-mgkg" type="number" step="any" min="0" placeholder="mg/kg manual (ej: 15)" value="${state.genMgkg}"
+            oninput="setState({genMgkg:this.value})"/>
+          <span class="iunit">mg/kg</span>
+        </div>
+      </div>` : ""}
     </div>
 
     <div id="gen-result">${renderGeneralResultado(bl, blt, cy)}</div>
 
     <div class="warn-box" style="margin-top:4px">
-      ⚠️ Dosis de <strong>referencia</strong> para adulto. No sustituye el criterio clínico ni la prescripción.
-      Verifica siempre dosis, dilución y compatibilidad antes de administrar.
+      ⚠️ Dosis de <strong>referencia</strong> (adulto y pediátrica). No sustituye el criterio clínico ni la prescripción.
+      Verifica siempre dosis, dilución, frecuencia y compatibilidad antes de administrar.
     </div>
   `;
 }
