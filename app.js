@@ -46,6 +46,7 @@ function fmt(n){
 
 function generarResultados(res, bl, blt, cy){
   if(!res) return "";
+  if (!window.ms360Shown || window.ms360Shown !== JSON.stringify({tab:'dosis',state})) return `<button class="preset-btn" onclick="ms360Reveal('dosis')">📊 Ver resultado (3 pruebas gratuitas)</button>`;
   
   const vialedFull = Math.floor(res.viales);
   const pct = Math.min(res.viales*100, 100);
@@ -552,6 +553,7 @@ function calcularGoteo(){
 }
 
 function renderGoteoResultado(res, bl, blt, cy){
+  if(res && window.ms360Shown !== JSON.stringify({tab:'goteo',state})) return `<button class="preset-btn" onclick="ms360Reveal('goteo')">📊 Ver resultado (3 pruebas gratuitas)</button>`;
   if(!res) return `
     <div style="background:${bl}11;border:1px solid ${bl}33;border-radius:14px;padding:20px;text-align:center;color:var(--muted);font-size:13px">
       ⚕️ Completa los campos para ver el cálculo automático
@@ -740,3 +742,5 @@ window.applyPreset = function(p){
 /* SW gestionado por la app maestra MS360 — registro local desactivado */
 
 document.addEventListener("DOMContentLoaded",()=>{ makeParticles(); render(); });
+
+window.ms360Reveal=function(tab){if(window.MS360Premium&&!window.MS360Premium.allow())return;window.ms360Shown=JSON.stringify({tab,state});render();};
