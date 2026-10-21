@@ -1,6 +1,6 @@
 /* Caché completa de la app; la activación de códigos requiere internet. */
-const CACHE_NAME = 'ms360-free-dosis-20261020-v2';
-const ASSETS = [
+const CACHE_NAME = 'ms360-free-dosis-20261021-lemon-v1';
+const ASSETS = ["./lemon-license.js", "./premium.js", 
   "./",
   "./index.html",
   "./manifest.json",
